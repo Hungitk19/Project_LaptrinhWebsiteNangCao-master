@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using blogAPI.Data;
 using blogAPI.Dto.User;
 using blogAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace blogAPI.Responsitories
 {
@@ -32,25 +33,29 @@ namespace blogAPI.Responsitories
         return result;
         }
         public async Task< List<UserDto>> GetUsers(){
-            return await _context.Users.Select(u=>new UserDto(){
+            return await _context.Users.AsNoTracking().Select(user=>new UserDto(){
                 DisplayName = user.DisplayName,
                 Email = user.Email,
                 Phone = user.Phone,
                 ID = user.Id,
                 DateOfBirth = user.DateOfBirth,
                 Address = user.Address,
-            }).AsNoTracking().ToListAsync();
+            }).ToListAsync();
             
         }
 
         public async Task<bool> DeleteUser(Guid Id){
             var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == Id);
             if(user == null){
-                return null;
+                return false;
+               
             };
+             _context.Users.Remove(user);
+             await _context.SaveChangesAsync();
+             return true;
         }   
 
-        public UserDto EditUser(User user)
+        public async Task<UserDto>  EditUser (Guid Id, User user)
         {
             var userExist = await _context.Users.FirstOrDefaultAsync(user => user.Id == Id);
             if(userExist == null){
@@ -61,9 +66,9 @@ namespace blogAPI.Responsitories
             userExist.Phone = user.Phone;
             userExist.DateOfBirth = user.DateOfBirth;
             userExist.Address = user.Address;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            var result = new UserDto()
+            return new UserDto()
             {
                 DisplayName = user.DisplayName,
                 Email = user.Email,
@@ -72,7 +77,6 @@ namespace blogAPI.Responsitories
                 DateOfBirth = user.DateOfBirth,
                 Address = user.Address,
             };
-        return result;
         }
     }
 }
